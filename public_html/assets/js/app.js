@@ -276,7 +276,7 @@ async function handleDeleteItem(itemId) {
                     updateItemCount();
                     showEmptyStateIfNeeded();
                 }
-            }, 500);
+            }, 600);
         }
     } catch (err) {
         showToast('Could not delete item: ' + err.message);
