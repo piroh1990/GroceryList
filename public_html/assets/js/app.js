@@ -9,6 +9,7 @@
  *  • Short polling – ask the server for updates every POLLING_INTERVAL_MS
  *  • localStorage  – remember "Recent Lists" for quick navigation
  *  • Sidebar       – show / hide recent lists panel
+ *  • Micro-interactions – item animations, swipe-to-delete, item counts
  */
 
 'use strict';
@@ -33,7 +34,7 @@ let pollingTimer       = null;
 // ── DOM refs (populated in init) ──────────────────────────────────────────────
 let homeScreen, listScreen;
 let createForm, newListNameInput;
-let listTitleInput, itemList;
+let listTitleInput, itemList, itemCountEl;
 let addItemForm, addItemInput;
 let shareUrlInput, copyShareBtn;
 let syncDot, syncLabel;
@@ -48,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     newListNameInput = document.getElementById('new-list-name');
     listTitleInput  = document.getElementById('list-title');
     itemList        = document.getElementById('item-list');
+    itemCountEl     = document.getElementById('item-count');
     addItemForm     = document.getElementById('add-item-form');
     addItemInput    = document.getElementById('add-item-input');
     shareUrlInput   = document.getElementById('share-url');
@@ -69,6 +71,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('close-sidebar-btn').addEventListener('click', closeSidebar);
     sidebarOverlay.addEventListener('click', closeSidebar);
 
+    // Close sidebar on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && sidebar.classList.contains('open')) {
+            closeSidebar();
+        }
+    });
+
     // Use server-injected data if available (avoids redundant initial API call).
     const appData = window.__APP_DATA__ || {};
 
@@ -89,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── Screen management ─────────────────────────────────────────────────────────
 function showHomeScreen() {
-    homeScreen.style.display = 'block';
+    homeScreen.style.display = 'flex';
     listScreen.style.display = 'none';
     stopPolling();
     renderRecentLists();
@@ -110,6 +119,7 @@ async function showListScreen(hash, skipInitialPoll = false) {
         setSyncState('synced');
         // Wire up event listeners for server-rendered items.
         wireExistingItems();
+        updateItemCount();
     }
     startPolling();
 }
@@ -125,12 +135,58 @@ function wireExistingItems() {
             checkbox.addEventListener('change', () => {
                 li.classList.toggle('checked', checkbox.checked);
                 handleToggleItem(itemId, checkbox.checked);
+                updateItemCount();
             });
         }
         if (delBtn) {
             delBtn.addEventListener('click', () => handleDeleteItem(itemId));
         }
+
+        // Swipe-to-delete on touch devices
+        setupSwipeToDelete(li, itemId);
     });
+}
+
+// ── Swipe-to-delete ───────────────────────────────────────────────────────────
+function setupSwipeToDelete(li, itemId) {
+    let startX = 0;
+    let currentX = 0;
+    let swiping = false;
+
+    li.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        currentX = startX;
+        swiping = true;
+        li.style.transition = 'none';
+    }, { passive: true });
+
+    li.addEventListener('touchmove', (e) => {
+        if (!swiping) return;
+        currentX = e.touches[0].clientX;
+        const dx = currentX - startX;
+        // Only allow left swipe
+        if (dx < 0) {
+            const capped = Math.max(dx, -120);
+            li.style.transform = `translateX(${capped}px)`;
+            li.style.opacity = String(1 - Math.abs(capped) / 200);
+        }
+    }, { passive: true });
+
+    li.addEventListener('touchend', () => {
+        if (!swiping) return;
+        swiping = false;
+        const dx = currentX - startX;
+        li.style.transition = '';
+
+        if (dx < -80) {
+            // Threshold passed – delete
+            handleDeleteItem(itemId);
+        } else {
+            // Snap back
+            li.style.transform = '';
+            li.style.opacity = '';
+        }
+    }, { passive: true });
 }
 
 // ── Create list ───────────────────────────────────────────────────────────────
@@ -164,7 +220,13 @@ async function handleAddItem(e) {
         if (!data.success) throw new Error(data.error || 'Unknown error');
 
         addItemInput.value = '';
+
+        // Remove empty state if present
+        const emptyState = itemList.querySelector('.empty-list-state');
+        if (emptyState) emptyState.remove();
+
         appendItem(data.item);
+        updateItemCount();
         // Touch the local timestamp so the next poll does not overwrite
         // the optimistic update before the server echoes the change.
         lastKnownUpdate = new Date().toISOString();
@@ -199,7 +261,23 @@ async function handleDeleteItem(itemId) {
         if (!data.success) throw new Error(data.error || 'Unknown error');
 
         const li = document.querySelector(`[data-item-id="${itemId}"]`);
-        if (li) li.remove();
+        if (li) {
+            // Animate removal
+            li.classList.add('removing');
+            li.addEventListener('transitionend', () => {
+                li.remove();
+                updateItemCount();
+                showEmptyStateIfNeeded();
+            }, { once: true });
+            // Fallback in case transitionend doesn't fire
+            setTimeout(() => {
+                if (li.parentNode) {
+                    li.remove();
+                    updateItemCount();
+                    showEmptyStateIfNeeded();
+                }
+            }, 500);
+        }
     } catch (err) {
         showToast('Could not delete item: ' + err.message);
     }
@@ -282,10 +360,12 @@ async function pollForUpdates() {
 function renderItems(items) {
     itemList.innerHTML = '';
     if (items.length === 0) {
-        itemList.innerHTML = '<li style="color:var(--color-muted);padding:.5rem 0;font-size:.9rem;">No items yet – add one above!</li>';
+        showEmptyState();
+        updateItemCount();
         return;
     }
     items.forEach(appendItem);
+    updateItemCount();
 }
 
 function appendItem(item) {
@@ -296,9 +376,11 @@ function appendItem(item) {
     const checkbox = document.createElement('input');
     checkbox.type    = 'checkbox';
     checkbox.checked = !!item.is_checked;
+    checkbox.setAttribute('aria-label', 'Mark ' + item.item_name + ' as done');
     checkbox.addEventListener('change', () => {
         li.classList.toggle('checked', checkbox.checked);
         handleToggleItem(item.id, checkbox.checked);
+        updateItemCount();
     });
 
     const nameSpan = document.createElement('span');
@@ -308,11 +390,52 @@ function appendItem(item) {
     const delBtn = document.createElement('button');
     delBtn.className = 'btn-delete-item';
     delBtn.title     = 'Delete item';
+    delBtn.setAttribute('aria-label', 'Delete ' + item.item_name);
     delBtn.innerHTML = '&times;';
     delBtn.addEventListener('click', () => handleDeleteItem(item.id));
 
     li.append(checkbox, nameSpan, delBtn);
     itemList.appendChild(li);
+
+    // Setup swipe-to-delete
+    setupSwipeToDelete(li, item.id);
+}
+
+// ── Item count display ────────────────────────────────────────────────────────
+function updateItemCount() {
+    if (!itemCountEl) return;
+    const allItems = itemList.querySelectorAll('li[data-item-id]');
+    const total = allItems.length;
+    const checked = itemList.querySelectorAll('li[data-item-id].checked').length;
+
+    if (total === 0) {
+        itemCountEl.textContent = '';
+        return;
+    }
+
+    const remaining = total - checked;
+    if (checked === total) {
+        itemCountEl.textContent = `All ${total} item${total !== 1 ? 's' : ''} done ✓`;
+    } else {
+        itemCountEl.textContent = `${remaining} remaining · ${checked} done · ${total} total`;
+    }
+}
+
+// ── Empty state helpers ───────────────────────────────────────────────────────
+function showEmptyState() {
+    itemList.innerHTML = '';
+    const li = document.createElement('li');
+    li.className = 'empty-list-state';
+    li.innerHTML = '<span class="empty-icon" aria-hidden="true">🛒</span>' +
+                   '<p>Your list is empty.<br>Add your first item above!</p>';
+    itemList.appendChild(li);
+}
+
+function showEmptyStateIfNeeded() {
+    const items = itemList.querySelectorAll('li[data-item-id]');
+    if (items.length === 0) {
+        showEmptyState();
+    }
 }
 
 // ── Sync indicator ────────────────────────────────────────────────────────────
@@ -327,11 +450,18 @@ function openSidebar() {
     renderRecentLists();
     sidebar.classList.add('open');
     sidebarOverlay.style.display = 'block';
+    // Trigger reflow for animation
+    requestAnimationFrame(() => {
+        sidebarOverlay.classList.add('visible');
+    });
 }
 
 function closeSidebar() {
     sidebar.classList.remove('open');
-    sidebarOverlay.style.display = 'none';
+    sidebarOverlay.classList.remove('visible');
+    setTimeout(() => {
+        sidebarOverlay.style.display = 'none';
+    }, 250);
 }
 
 function renderRecentLists() {
