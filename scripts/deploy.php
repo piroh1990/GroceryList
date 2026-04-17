@@ -24,7 +24,7 @@ $configFile = __DIR__ . '/../config/config.php';
 $schemaFile = __DIR__ . '/db.schema.sql';
 
 if (!file_exists($configFile)) {
-    die("ERROR: config/config.php not found. Copy it from the template and fill in your credentials.\n");
+    die("ERROR: config/config.php not found. Copy config/config.example.php to config/config.php and fill in your credentials.\n");
 }
 
 if (!file_exists($schemaFile)) {

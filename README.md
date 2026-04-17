@@ -27,7 +27,7 @@ Share a link → anyone with the link can view and edit the list in near real-ti
 │   └── functions.php   ← Utility functions
 │
 ├── config/             ← Configuration (not web-accessible)
-│   └── config.php      ← DB credentials & app settings
+│   └── config.example.php  ← DB credentials & app settings (template)
 │
 ├── scripts/            ← Deployment & maintenance scripts
 │   ├── db.schema.sql   ← Full MySQL schema
@@ -48,7 +48,13 @@ git clone https://github.com/piroh1990/GroceryList.git
 cd GroceryList
 ```
 
-Edit **`config/config.php`** and set your database credentials:
+Copy the example config and edit it with your database credentials:
+
+```bash
+cp config/config.example.php config/config.php
+```
+
+Then edit **`config/config.php`**:
 
 ```php
 define('DB_HOST', 'localhost');
