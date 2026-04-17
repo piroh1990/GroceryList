@@ -1,9 +1,9 @@
 <?php
 /**
- * config/config.php
+ * config/config.example.php
  *
- * Central application configuration.
- * Copy this file or edit in place before running deploy.php.
+ * Central application configuration template.
+ * Copy this file to config/config.php and fill in your credentials before running deploy.php.
  */
 
 // ── Database ──────────────────────────────────────────────────────────────────
