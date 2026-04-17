@@ -33,12 +33,15 @@ if ($listHash !== '') {
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="A no-frills shared grocery list – no accounts required." />
+    <meta name="theme-color" content="#D95030" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title><?= $listData ? htmlspecialchars($listData['list_name']) . ' – ' : '' ?>Grocery List</title>
     <link rel="stylesheet" href="assets/css/style.css" />
-    <!-- Preload the share icon font so it renders instantly -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap" rel="stylesheet" />
 </head>
 <body>
 
@@ -47,7 +50,7 @@ if ($listHash !== '') {
     <a href="index.php" class="logo" aria-label="Go to home">
         <!-- Cart icon (inline SVG – no external dependency) -->
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
              aria-hidden="true">
             <circle cx="9"  cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
             <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
@@ -68,16 +71,16 @@ if ($listHash !== '') {
     ═════════════════════════════════════════════════════════════════ -->
     <section id="home-screen"<?= $listData ? ' style="display:none"' : '' ?>>
         <div class="card">
-            <h1>Welcome to Grocery&nbsp;List</h1>
-            <p class="subtitle">Create a list and share the link – no account needed.</p>
+            <h1>Your <span class="accent">grocery</span> run,<br>simplified.</h1>
+            <p class="subtitle">Create a shared list in seconds. No sign-up, no fuss&mdash;just a link.</p>
 
             <form id="create-form" class="form-row" novalidate>
                 <input type="text" id="new-list-name"
-                       placeholder="List name (e.g. Home, Office…)"
+                       placeholder="Name your list…"
                        maxlength="100"
                        autocomplete="off" />
                 <button type="submit" class="btn btn-primary">
-                    + Create List
+                    Create List →
                 </button>
             </form>
         </div>
@@ -114,12 +117,16 @@ if ($listHash !== '') {
                 <button type="submit" class="btn btn-primary">Add</button>
             </form>
 
+            <!-- Item count -->
+            <div id="item-count" class="item-count"></div>
+
             <!-- Item list (server-rendered for fast initial paint) -->
             <ul id="item-list">
 <?php if ($listData): ?>
 <?php   if (empty($initItems)): ?>
-                <li style="color:var(--color-muted);padding:.5rem 0;font-size:.9rem;">
-                    No items yet – add one above!
+                <li class="empty-list-state">
+                    <span class="empty-icon" aria-hidden="true">🛒</span>
+                    <p>Your list is empty.<br>Add your first item above!</p>
                 </li>
 <?php   else: ?>
 <?php   foreach ($initItems as $item): ?>
@@ -129,7 +136,7 @@ if ($listHash !== '') {
                            <?= $item['is_checked'] ? 'checked' : '' ?>
                            aria-label="Mark <?= htmlspecialchars($item['item_name']) ?> as done" />
                     <span class="item-name"><?= htmlspecialchars($item['item_name']) ?></span>
-                    <button class="btn-delete-item" title="Delete item">&times;</button>
+                    <button class="btn-delete-item" title="Delete item" aria-label="Delete <?= htmlspecialchars($item['item_name']) ?>">&times;</button>
                 </li>
 <?php   endforeach; ?>
 <?php   endif; ?>
