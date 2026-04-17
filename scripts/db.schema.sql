@@ -2,14 +2,11 @@
 --
 -- Full database schema for the Grocery List application.
 -- Run this file via scripts/deploy.php or import it manually:
---   mysql -u <user> -p grocery_app < scripts/db.schema.sql
-
--- Create the database if it does not exist yet.
-CREATE DATABASE IF NOT EXISTS grocery_app
-    CHARACTER SET utf8mb4
-    COLLATE utf8mb4_unicode_ci;
-
-USE grocery_app;
+--   mysql -u <user> -p <dbname> < scripts/db.schema.sql
+--
+-- NOTE: The database itself must already exist. deploy.php reads the
+-- database name from config/config.php (DB_NAME) and connects to it
+-- automatically, so no CREATE DATABASE or USE statement is needed here.
 
 -- ── grocery_lists ─────────────────────────────────────────────────────────────
 -- Each row represents one shared grocery list identified by its unique_hash.

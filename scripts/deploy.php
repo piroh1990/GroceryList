@@ -13,8 +13,9 @@
  *   2. Reads scripts/db.schema.sql and executes each statement.
  *   3. Reports success or failure for each statement.
  *
- * NOTE: The schema uses CREATE DATABASE IF NOT EXISTS and
- *       CREATE TABLE IF NOT EXISTS, so it is safe to run repeatedly.
+ * NOTE: The schema uses CREATE TABLE IF NOT EXISTS, so it is safe to
+ *       run repeatedly. The database must already exist; it is selected
+ *       via DB_NAME from config/config.php.
  */
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
@@ -33,8 +34,8 @@ if (!file_exists($schemaFile)) {
 
 require_once $configFile;
 
-// ── Connect (without selecting a specific DB so we can CREATE it) ─────────────
-$dsn = sprintf('mysql:host=%s;port=%d;charset=%s', DB_HOST, DB_PORT, DB_CHARSET);
+// ── Connect to the database defined in config.php ─────────────────────────────
+$dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=%s', DB_HOST, DB_PORT, DB_NAME, DB_CHARSET);
 
 try {
     $pdo = new PDO($dsn, DB_USER, DB_PASS, [
