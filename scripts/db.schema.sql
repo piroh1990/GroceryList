@@ -1,0 +1,37 @@
+-- scripts/db.schema.sql
+--
+-- Full database schema for the Grocery List application.
+-- Run this file via scripts/deploy.php or import it manually:
+--   mysql -u <user> -p grocery_app < scripts/db.schema.sql
+
+-- Create the database if it does not exist yet.
+CREATE DATABASE IF NOT EXISTS grocery_app
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+
+USE grocery_app;
+
+-- ── grocery_lists ─────────────────────────────────────────────────────────────
+-- Each row represents one shared grocery list identified by its unique_hash.
+-- The last_updated column is used by the short-polling endpoint to avoid
+-- querying list_items unless a change has actually occurred.
+CREATE TABLE IF NOT EXISTS grocery_lists (
+    id           INT           AUTO_INCREMENT PRIMARY KEY,
+    unique_hash  VARCHAR(64)   UNIQUE NOT NULL,
+    list_name    VARCHAR(100)  DEFAULT 'My Grocery List',
+    created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    last_updated TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+                               ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── list_items ────────────────────────────────────────────────────────────────
+-- Each row is a single item inside a grocery list.
+-- Deleting a list cascades and removes all its items automatically.
+CREATE TABLE IF NOT EXISTS list_items (
+    id         INT           AUTO_INCREMENT PRIMARY KEY,
+    list_id    INT           NOT NULL,
+    item_name  VARCHAR(255)  NOT NULL,
+    is_checked TINYINT(1)    DEFAULT 0,
+    created_at TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (list_id) REFERENCES grocery_lists(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
