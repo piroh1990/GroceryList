@@ -68,6 +68,9 @@ if ($listHash !== '') {
         </button>
 <?php if ($currentUser): ?>
         <span id="user-greeting" class="user-greeting">👤 <?= htmlspecialchars($currentUser['username']) ?></span>
+        <button id="open-profile-btn" class="btn btn-outline btn-sm" aria-label="Profile settings">
+            ⚙ Profile
+        </button>
         <button id="logout-btn" class="btn btn-outline btn-sm" aria-label="Log out">
             Log out
         </button>
@@ -199,6 +202,37 @@ if ($listHash !== '') {
         </div>
         <div id="login-error" class="auth-error" role="alert"></div>
         <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+        <p class="auth-link"><a href="#" id="forgot-password-link">Forgot your password?</a></p>
+    </form>
+
+    <!-- Forgot Password form -->
+    <form id="forgot-form" class="auth-form" style="display:none" novalidate>
+        <p class="auth-description">Enter your email address and we'll generate a reset token.</p>
+        <div class="form-group">
+            <label for="forgot-email">Email</label>
+            <input type="email" id="forgot-email" required autocomplete="email" />
+        </div>
+        <div id="forgot-error" class="auth-error" role="alert"></div>
+        <div id="forgot-success" class="auth-success" role="status"></div>
+        <button type="submit" class="btn btn-primary btn-block">Send reset token</button>
+        <p class="auth-link"><a href="#" id="back-to-login-link">Back to sign in</a></p>
+    </form>
+
+    <!-- Reset Password form (shown after token is generated) -->
+    <form id="reset-form" class="auth-form" style="display:none" novalidate>
+        <p class="auth-description">Enter your new password below.</p>
+        <div class="form-group">
+            <label for="reset-token">Reset token</label>
+            <input type="text" id="reset-token" required readonly />
+        </div>
+        <div class="form-group">
+            <label for="reset-password">New password</label>
+            <input type="password" id="reset-password" required minlength="6" autocomplete="new-password" />
+        </div>
+        <div id="reset-error" class="auth-error" role="alert"></div>
+        <div id="reset-success" class="auth-success" role="status"></div>
+        <button type="submit" class="btn btn-primary btn-block">Reset password</button>
+        <p class="auth-link"><a href="#" id="back-to-login-link-2">Back to sign in</a></p>
     </form>
 
     <!-- Register form -->
@@ -219,6 +253,61 @@ if ($listHash !== '') {
         <div id="register-error" class="auth-error" role="alert"></div>
         <button type="submit" class="btn btn-primary btn-block">Create account</button>
     </form>
+</div>
+
+<!-- ── Profile Modal ───────────────────────────────────────────────────────── -->
+<div id="profile-overlay" class="modal-overlay" aria-hidden="true"></div>
+<div id="profile-modal" class="modal" role="dialog" aria-label="Profile settings" aria-hidden="true">
+    <div class="modal-header">
+        <span class="modal-title">Profile Settings</span>
+        <button id="close-profile-btn" class="modal-close" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="profile-content">
+        <!-- Change Email -->
+        <form id="change-email-form" class="auth-form profile-section" novalidate>
+            <h3 class="profile-section-title">Change Email</h3>
+            <div class="form-group">
+                <label for="profile-new-email">New email</label>
+                <input type="email" id="profile-new-email" required autocomplete="email" />
+            </div>
+            <div class="form-group">
+                <label for="profile-email-password">Current password</label>
+                <input type="password" id="profile-email-password" required autocomplete="current-password" />
+            </div>
+            <div id="email-change-error" class="auth-error" role="alert"></div>
+            <div id="email-change-success" class="auth-success" role="status"></div>
+            <button type="submit" class="btn btn-primary btn-block">Update email</button>
+        </form>
+
+        <!-- Change Password -->
+        <form id="change-password-form" class="auth-form profile-section" novalidate>
+            <h3 class="profile-section-title">Change Password</h3>
+            <div class="form-group">
+                <label for="profile-current-password">Current password</label>
+                <input type="password" id="profile-current-password" required autocomplete="current-password" />
+            </div>
+            <div class="form-group">
+                <label for="profile-new-password">New password</label>
+                <input type="password" id="profile-new-password" required minlength="6" autocomplete="new-password" />
+            </div>
+            <div id="password-change-error" class="auth-error" role="alert"></div>
+            <div id="password-change-success" class="auth-success" role="status"></div>
+            <button type="submit" class="btn btn-primary btn-block">Update password</button>
+        </form>
+
+        <!-- Delete Account -->
+        <form id="delete-account-form" class="auth-form profile-section profile-danger-zone" novalidate>
+            <h3 class="profile-section-title danger">Delete Account</h3>
+            <p class="auth-description">This action is permanent and cannot be undone. All your data will be deleted.</p>
+            <div class="form-group">
+                <label for="profile-delete-password">Confirm with your password</label>
+                <input type="password" id="profile-delete-password" required autocomplete="current-password" />
+            </div>
+            <div id="delete-account-error" class="auth-error" role="alert"></div>
+            <button type="submit" class="btn btn-danger btn-block">Delete my account</button>
+        </form>
+    </div>
 </div>
 
 <!-- ── Sidebar ─────────────────────────────────────────────────────────────── -->

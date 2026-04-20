@@ -1026,3 +1026,99 @@ a:hover { text-decoration: underline; }
         transition: none !important;
     }
 }
+
+/* ── Auth link (Forgot password, Back to login) ─────────────────────── */
+.auth-link {
+    text-align: center;
+    margin-top: .75rem;
+    font-size: .85rem;
+}
+
+.auth-link a {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.auth-link a:hover {
+    text-decoration: underline;
+}
+
+/* ── Auth description ───────────────────────────────────────────────── */
+.auth-description {
+    font-size: .9rem;
+    color: var(--color-muted);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+/* ── Auth success message ───────────────────────────────────────────── */
+.auth-success {
+    font-size: .85rem;
+    color: var(--color-green);
+    font-weight: 600;
+    margin-bottom: .75rem;
+    min-height: 1.2em;
+}
+
+/* ── Profile Modal ──────────────────────────────────────────────────── */
+.modal-title {
+    font-size: 1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -.01em;
+}
+
+.profile-content {
+    max-height: 70vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.profile-section {
+    border-bottom: 2px solid var(--color-border);
+}
+
+.profile-section:last-child {
+    border-bottom: none;
+}
+
+.profile-section-title {
+    font-size: .9rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    color: var(--color-text);
+    margin-bottom: .75rem;
+}
+
+.profile-section-title.danger {
+    color: var(--color-danger);
+}
+
+.profile-danger-zone {
+    background: rgba(193, 41, 46, .03);
+    border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* Danger button */
+.btn-danger {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .7rem 1.2rem;
+    border-radius: var(--radius-pill);
+    font-size: .9rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    background: var(--color-danger);
+    color: #fff;
+    transition: background var(--transition), transform .15s ease, box-shadow var(--transition);
+}
+
+.btn-danger:hover {
+    background: #a11e22;
+    box-shadow: 0 4px 12px rgba(193,41,46,.25);
+}
+
+.btn-danger:active { transform: scale(.96); }

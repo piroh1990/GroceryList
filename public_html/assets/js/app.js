@@ -93,6 +93,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (openAuthBtn) openAuthBtn.addEventListener('click', openAuthModal);
     if (logoutBtn)   logoutBtn.addEventListener('click', handleLogout);
 
+    // Profile button binding.
+    const openProfileBtn = document.getElementById('open-profile-btn');
+    if (openProfileBtn) openProfileBtn.addEventListener('click', openProfileModal);
+
     if (authModal) {
         document.getElementById('close-auth-btn').addEventListener('click', closeAuthModal);
         authOverlay.addEventListener('click', closeAuthModal);
@@ -100,13 +104,42 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('tab-register').addEventListener('click', () => switchAuthTab('register'));
         loginForm.addEventListener('submit', handleLogin);
         registerForm.addEventListener('submit', handleRegister);
+
+        // Forgot password flow bindings
+        const forgotLink = document.getElementById('forgot-password-link');
+        if (forgotLink) forgotLink.addEventListener('click', (e) => { e.preventDefault(); showForgotForm(); });
+
+        const backToLoginLink = document.getElementById('back-to-login-link');
+        if (backToLoginLink) backToLoginLink.addEventListener('click', (e) => { e.preventDefault(); backToLogin(); });
+
+        const backToLoginLink2 = document.getElementById('back-to-login-link-2');
+        if (backToLoginLink2) backToLoginLink2.addEventListener('click', (e) => { e.preventDefault(); backToLogin(); });
+
+        const forgotForm = document.getElementById('forgot-form');
+        if (forgotForm) forgotForm.addEventListener('submit', handleForgotPassword);
+
+        const resetForm = document.getElementById('reset-form');
+        if (resetForm) resetForm.addEventListener('submit', handleResetPassword);
     }
 
-    // Close sidebar or auth modal on Escape key
+    // Profile modal bindings
+    const profileModal   = document.getElementById('profile-modal');
+    const profileOverlay = document.getElementById('profile-overlay');
+    if (profileModal) {
+        document.getElementById('close-profile-btn').addEventListener('click', closeProfileModal);
+        profileOverlay.addEventListener('click', closeProfileModal);
+        document.getElementById('change-email-form').addEventListener('submit', handleChangeEmail);
+        document.getElementById('change-password-form').addEventListener('submit', handleChangePassword);
+        document.getElementById('delete-account-form').addEventListener('submit', handleDeleteAccount);
+    }
+
+    // Close sidebar, auth modal, or profile modal on Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             if (sidebar.classList.contains('open')) closeSidebar();
             if (authModal && !authModal.getAttribute('aria-hidden')?.includes('true')) closeAuthModal();
+            const pm = document.getElementById('profile-modal');
+            if (pm && !pm.getAttribute('aria-hidden')?.includes('true')) closeProfileModal();
         }
     });
 
@@ -684,5 +717,234 @@ async function handleLogout() {
         setTimeout(() => location.reload(), AUTH_RELOAD_DELAY);
     } catch {
         location.reload();
+    }
+}
+
+// ── Forgot Password Flow ──────────────────────────────────────────────────────
+function showForgotForm() {
+    loginForm.style.display    = 'none';
+    registerForm.style.display = 'none';
+    document.getElementById('forgot-form').style.display = '';
+    document.getElementById('reset-form').style.display  = 'none';
+    // Hide tabs
+    document.querySelector('.modal-tabs').style.display = 'none';
+}
+
+function showResetForm(token) {
+    loginForm.style.display    = 'none';
+    registerForm.style.display = 'none';
+    document.getElementById('forgot-form').style.display = 'none';
+    document.getElementById('reset-form').style.display  = '';
+    document.getElementById('reset-token').value = token;
+    document.querySelector('.modal-tabs').style.display = 'none';
+}
+
+function backToLogin() {
+    document.getElementById('forgot-form').style.display = 'none';
+    document.getElementById('reset-form').style.display  = 'none';
+    loginForm.style.display = '';
+    document.querySelector('.modal-tabs').style.display = '';
+    switchAuthTab('login');
+}
+
+async function handleForgotPassword(e) {
+    e.preventDefault();
+    const errorEl   = document.getElementById('forgot-error');
+    const successEl = document.getElementById('forgot-success');
+    errorEl.textContent   = '';
+    successEl.textContent = '';
+
+    const email = document.getElementById('forgot-email').value.trim();
+    if (!email) {
+        errorEl.textContent = 'Please enter your email.';
+        return;
+    }
+
+    try {
+        const res  = await apiFetch('forgot_password.php', 'POST', { email });
+        const data = await res.json();
+
+        if (!data.success) {
+            errorEl.textContent = data.error || 'Request failed.';
+            return;
+        }
+
+        if (data.token) {
+            // Show the reset form with the token pre-filled
+            successEl.textContent = 'Reset token generated!';
+            setTimeout(() => showResetForm(data.token), 600);
+        } else {
+            successEl.textContent = 'If an account with that email exists, check your reset options.';
+        }
+    } catch {
+        errorEl.textContent = 'Network error. Please try again.';
+    }
+}
+
+async function handleResetPassword(e) {
+    e.preventDefault();
+    const errorEl   = document.getElementById('reset-error');
+    const successEl = document.getElementById('reset-success');
+    errorEl.textContent   = '';
+    successEl.textContent = '';
+
+    const token    = document.getElementById('reset-token').value.trim();
+    const password = document.getElementById('reset-password').value;
+
+    if (!token || !password) {
+        errorEl.textContent = 'Please fill in all fields.';
+        return;
+    }
+
+    try {
+        const res  = await apiFetch('reset_password.php', 'POST', { token, password });
+        const data = await res.json();
+
+        if (!data.success) {
+            errorEl.textContent = data.error || 'Reset failed.';
+            return;
+        }
+
+        successEl.textContent = 'Password reset successfully! You can now sign in.';
+        setTimeout(() => backToLogin(), 1500);
+    } catch {
+        errorEl.textContent = 'Network error. Please try again.';
+    }
+}
+
+// ── Profile Modal ─────────────────────────────────────────────────────────────
+function openProfileModal() {
+    const modal   = document.getElementById('profile-modal');
+    const overlay = document.getElementById('profile-overlay');
+    if (!modal) return;
+    modal.setAttribute('aria-hidden', 'false');
+    overlay.style.display = 'block';
+    requestAnimationFrame(() => {
+        overlay.classList.add('visible');
+        modal.classList.add('open');
+    });
+}
+
+function closeProfileModal() {
+    const modal   = document.getElementById('profile-modal');
+    const overlay = document.getElementById('profile-overlay');
+    if (!modal) return;
+    modal.classList.remove('open');
+    overlay.classList.remove('visible');
+    setTimeout(() => {
+        overlay.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+    }, 250);
+    // Clear all messages
+    ['email-change-error', 'email-change-success', 'password-change-error',
+     'password-change-success', 'delete-account-error'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '';
+    });
+}
+
+async function handleChangeEmail(e) {
+    e.preventDefault();
+    const errorEl   = document.getElementById('email-change-error');
+    const successEl = document.getElementById('email-change-success');
+    errorEl.textContent   = '';
+    successEl.textContent = '';
+
+    const newEmail        = document.getElementById('profile-new-email').value.trim();
+    const currentPassword = document.getElementById('profile-email-password').value;
+
+    if (!newEmail || !currentPassword) {
+        errorEl.textContent = 'Please fill in all fields.';
+        return;
+    }
+
+    try {
+        const res  = await apiFetch('update_profile.php', 'POST', {
+            action: 'email',
+            current_password: currentPassword,
+            new_email: newEmail,
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+            errorEl.textContent = data.error || 'Update failed.';
+            return;
+        }
+
+        successEl.textContent = 'Email updated successfully!';
+        document.getElementById('profile-email-password').value = '';
+        setTimeout(() => location.reload(), 1500);
+    } catch {
+        errorEl.textContent = 'Network error. Please try again.';
+    }
+}
+
+async function handleChangePassword(e) {
+    e.preventDefault();
+    const errorEl   = document.getElementById('password-change-error');
+    const successEl = document.getElementById('password-change-success');
+    errorEl.textContent   = '';
+    successEl.textContent = '';
+
+    const currentPassword = document.getElementById('profile-current-password').value;
+    const newPassword     = document.getElementById('profile-new-password').value;
+
+    if (!currentPassword || !newPassword) {
+        errorEl.textContent = 'Please fill in all fields.';
+        return;
+    }
+
+    try {
+        const res  = await apiFetch('update_profile.php', 'POST', {
+            action: 'password',
+            current_password: currentPassword,
+            new_password: newPassword,
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+            errorEl.textContent = data.error || 'Update failed.';
+            return;
+        }
+
+        successEl.textContent = 'Password updated successfully!';
+        document.getElementById('profile-current-password').value = '';
+        document.getElementById('profile-new-password').value = '';
+    } catch {
+        errorEl.textContent = 'Network error. Please try again.';
+    }
+}
+
+async function handleDeleteAccount(e) {
+    e.preventDefault();
+    const errorEl = document.getElementById('delete-account-error');
+    errorEl.textContent = '';
+
+    const currentPassword = document.getElementById('profile-delete-password').value;
+
+    if (!currentPassword) {
+        errorEl.textContent = 'Please enter your password to confirm.';
+        return;
+    }
+
+    if (!confirm('Are you sure you want to delete your account? This cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const res  = await apiFetch('delete_account.php', 'POST', {
+            current_password: currentPassword,
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+            errorEl.textContent = data.error || 'Deletion failed.';
+            return;
+        }
+
+        showToast('Account deleted. Goodbye!');
+        setTimeout(() => location.reload(), AUTH_RELOAD_DELAY);
+    } catch {
+        errorEl.textContent = 'Network error. Please try again.';
     }
 }
