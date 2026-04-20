@@ -10,6 +10,10 @@
  */
 
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/auth.php';
+
+start_auth_session();
+$currentUser = get_current_user_row();
 
 // Determine whether we are in list-view or home-view.
 $listHash  = trim($_GET['list'] ?? '');
@@ -58,9 +62,24 @@ if ($listHash !== '') {
         Grocery List
     </a>
 
-    <button id="open-sidebar-btn" class="btn btn-outline btn-sm" aria-label="Recent lists">
-        ☰ My Lists
-    </button>
+    <div class="header-actions">
+<?php if ($currentUser): ?>
+        <span id="user-greeting" class="user-greeting">👤 <?= htmlspecialchars($currentUser['username']) ?></span>
+        <button id="open-sidebar-btn" class="btn btn-outline btn-sm" aria-label="Recent lists">
+            ☰ My Lists
+        </button>
+        <button id="logout-btn" class="btn btn-outline btn-sm" aria-label="Log out">
+            Log out
+        </button>
+<?php else: ?>
+        <button id="open-sidebar-btn" class="btn btn-outline btn-sm" aria-label="Recent lists">
+            ☰ My Lists
+        </button>
+        <button id="open-auth-btn" class="btn btn-outline btn-sm" aria-label="Sign in or register">
+            Sign in
+        </button>
+<?php endif; ?>
+    </div>
 </header>
 
 <!-- ── Main ───────────────────────────────────────────────────────────────── -->
@@ -160,6 +179,51 @@ if ($listHash !== '') {
 
 </main>
 
+<!-- ── Auth Modal ───────────────────────────────────────────────────────────── -->
+<div id="auth-overlay" class="modal-overlay" aria-hidden="true"></div>
+<div id="auth-modal" class="modal" role="dialog" aria-label="Sign in or register" aria-hidden="true">
+    <div class="modal-header">
+        <div class="modal-tabs">
+            <button id="tab-login" class="modal-tab active" data-tab="login">Sign in</button>
+            <button id="tab-register" class="modal-tab" data-tab="register">Register</button>
+        </div>
+        <button id="close-auth-btn" class="modal-close" aria-label="Close">&times;</button>
+    </div>
+
+    <!-- Login form -->
+    <form id="login-form" class="auth-form" novalidate>
+        <div class="form-group">
+            <label for="login-input">Email or username</label>
+            <input type="text" id="login-input" required autocomplete="username" />
+        </div>
+        <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" required autocomplete="current-password" />
+        </div>
+        <div id="login-error" class="auth-error" role="alert"></div>
+        <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+    </form>
+
+    <!-- Register form -->
+    <form id="register-form" class="auth-form" style="display:none" novalidate>
+        <div class="form-group">
+            <label for="reg-username">Username</label>
+            <input type="text" id="reg-username" required minlength="3" maxlength="50"
+                   pattern="[a-zA-Z0-9_]+" autocomplete="username" />
+        </div>
+        <div class="form-group">
+            <label for="reg-email">Email</label>
+            <input type="email" id="reg-email" required autocomplete="email" />
+        </div>
+        <div class="form-group">
+            <label for="reg-password">Password</label>
+            <input type="password" id="reg-password" required minlength="6" autocomplete="new-password" />
+        </div>
+        <div id="register-error" class="auth-error" role="alert"></div>
+        <button type="submit" class="btn btn-primary btn-block">Create account</button>
+    </form>
+</div>
+
 <!-- ── Sidebar ─────────────────────────────────────────────────────────────── -->
 <div id="sidebar-overlay" aria-hidden="true"></div>
 <aside id="sidebar" aria-label="Recent lists">
@@ -179,6 +243,7 @@ if ($listHash !== '') {
     window.__APP_DATA__ = {
         listHash:      <?= $listData ? json_encode($listData['unique_hash']) : 'null' ?>,
         lastUpdated:   <?= $listData ? json_encode($listData['last_updated']) : json_encode('2000-01-01 00:00:00') ?>,
+        user:          <?= $currentUser ? json_encode(['id' => $currentUser['id'], 'username' => $currentUser['username'], 'email' => $currentUser['email']]) : 'null' ?>,
     };
 </script>
 <script src="assets/js/app.js"></script>

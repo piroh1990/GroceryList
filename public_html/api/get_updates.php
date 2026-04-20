@@ -20,6 +20,7 @@
  */
 
 require_once __DIR__ . '/../../includes/functions.php';
+require_once __DIR__ . '/../../includes/auth.php';
 
 header('Access-Control-Allow-Origin: *');
 // Tell browsers and proxies not to cache this endpoint.
@@ -56,9 +57,15 @@ foreach ($items as &$item) {
 }
 unset($item);
 
+// Determine if current user owns this list.
+start_auth_session();
+$currentUser = get_current_user_row();
+$isOwner = $currentUser && isset($list['owner_id']) && (int) $list['owner_id'] === (int) $currentUser['id'];
+
 json_response([
     'changed'   => true,
     'timestamp' => $list['last_updated'],
     'list_name' => $list['list_name'],
     'items'     => $items,
+    'is_owner'  => $isOwner,
 ]);
