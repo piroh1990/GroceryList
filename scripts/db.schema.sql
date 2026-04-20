@@ -46,6 +46,12 @@ CREATE TABLE IF NOT EXISTS users (
 -- Add owner_id column to grocery_lists if it doesn't exist.
 -- This links a list to the user who created it (NULL for anonymous lists).
 ALTER TABLE grocery_lists
-    ADD COLUMN IF NOT EXISTS owner_id INT DEFAULT NULL,
-    ADD CONSTRAINT IF NOT EXISTS fk_grocery_lists_owner
-        FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL;
+    ADD COLUMN IF NOT EXISTS owner_id INT DEFAULT NULL;
+
+-- Add foreign-key constraint linking owner_id → users(id).
+-- NOTE: IF NOT EXISTS for FOREIGN KEY is only supported in MariaDB 10.5.2+;
+-- on older versions or MySQL the deploy script will catch the "already exists"
+-- error and continue safely.
+ALTER TABLE grocery_lists
+    ADD CONSTRAINT fk_grocery_lists_owner
+        FOREIGN KEY IF NOT EXISTS (owner_id) REFERENCES users(id) ON DELETE SET NULL;
