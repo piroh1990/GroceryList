@@ -138,8 +138,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Escape') {
             if (sidebar.classList.contains('open')) closeSidebar();
             if (authModal && !authModal.getAttribute('aria-hidden')?.includes('true')) closeAuthModal();
-            const pm = document.getElementById('profile-modal');
-            if (pm && !pm.getAttribute('aria-hidden')?.includes('true')) closeProfileModal();
+            const profileModal = document.getElementById('profile-modal');
+            if (profileModal && !profileModal.getAttribute('aria-hidden')?.includes('true')) closeProfileModal();
         }
     });
 
