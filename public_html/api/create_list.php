@@ -3,6 +3,7 @@
  * public_html/api/create_list.php
  *
  * Creates a new grocery list and returns the unique hash.
+ * If the user is logged in, the list is associated with their account.
  *
  * Method: POST
  * Body (JSON or form): { "list_name": "My List" }   (optional)
@@ -10,6 +11,7 @@
  */
 
 require_once __DIR__ . '/../../includes/functions.php';
+require_once __DIR__ . '/../../includes/auth.php';
 
 header('Access-Control-Allow-Origin: *');
 
@@ -29,10 +31,15 @@ if ($list_name === '') {
 $hash = generate_hash();
 $pdo  = get_db();
 
+// Associate with logged-in user if available.
+start_auth_session();
+$user    = get_current_user_row();
+$ownerId = $user ? $user['id'] : null;
+
 $stmt = $pdo->prepare(
-    'INSERT INTO grocery_lists (unique_hash, list_name) VALUES (?, ?)'
+    'INSERT INTO grocery_lists (unique_hash, list_name, owner_id) VALUES (?, ?, ?)'
 );
-$stmt->execute([$hash, $list_name]);
+$stmt->execute([$hash, $list_name, $ownerId]);
 
 json_response([
     'success'   => true,
