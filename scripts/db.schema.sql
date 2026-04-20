@@ -32,3 +32,20 @@ CREATE TABLE IF NOT EXISTS list_items (
     created_at TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (list_id) REFERENCES grocery_lists(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── users ─────────────────────────────────────────────────────────────────────
+-- Registered users. email must be unique. Password is stored as a bcrypt hash.
+CREATE TABLE IF NOT EXISTS users (
+    id         INT           AUTO_INCREMENT PRIMARY KEY,
+    username   VARCHAR(50)   UNIQUE NOT NULL,
+    email      VARCHAR(255)  UNIQUE NOT NULL,
+    password   VARCHAR(255)  NOT NULL,
+    created_at TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Add owner_id column to grocery_lists if it doesn't exist.
+-- This links a list to the user who created it (NULL for anonymous lists).
+ALTER TABLE grocery_lists
+    ADD COLUMN IF NOT EXISTS owner_id INT DEFAULT NULL,
+    ADD CONSTRAINT IF NOT EXISTS fk_grocery_lists_owner
+        FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL;

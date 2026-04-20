@@ -18,6 +18,9 @@
 // Change this value to adjust how often the client checks for updates.
 const POLLING_INTERVAL_MS = 10000;
 
+// Delay (ms) before reloading the page after auth actions (login/register/logout).
+const AUTH_RELOAD_DELAY = 600;
+
 // ── Derived API base URL ──────────────────────────────────────────────────────
 // Works whether the page is served from the web root or a subdirectory.
 const API_BASE = (() => {
@@ -30,6 +33,7 @@ const API_BASE = (() => {
 let currentHash        = null;
 let lastKnownUpdate    = '2000-01-01 00:00:00';
 let pollingTimer       = null;
+let currentUser        = null;
 
 // ── DOM refs (populated in init) ──────────────────────────────────────────────
 let homeScreen, listScreen;
@@ -40,6 +44,9 @@ let shareUrlInput, copyShareBtn;
 let syncDot, syncLabel;
 let sidebarOverlay, sidebar, recentListsEl;
 let toastEl;
+let authOverlay, authModal;
+let loginForm, registerForm;
+let loginError, registerError;
 
 // ── Initialization ────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -60,6 +67,15 @@ document.addEventListener('DOMContentLoaded', () => {
     sidebar         = document.getElementById('sidebar');
     recentListsEl   = document.getElementById('recent-lists');
     toastEl         = document.getElementById('toast');
+    authOverlay     = document.getElementById('auth-overlay');
+    authModal       = document.getElementById('auth-modal');
+    loginForm       = document.getElementById('login-form');
+    registerForm    = document.getElementById('register-form');
+    loginError      = document.getElementById('login-error');
+    registerError   = document.getElementById('register-error');
+
+    // Track logged-in user from server-rendered data.
+    currentUser = (window.__APP_DATA__ || {}).user || null;
 
     // Bind events.
     createForm.addEventListener('submit', handleCreateList);
@@ -71,10 +87,26 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('close-sidebar-btn').addEventListener('click', closeSidebar);
     sidebarOverlay.addEventListener('click', closeSidebar);
 
-    // Close sidebar on Escape key
+    // Auth event bindings.
+    const openAuthBtn = document.getElementById('open-auth-btn');
+    const logoutBtn   = document.getElementById('logout-btn');
+    if (openAuthBtn) openAuthBtn.addEventListener('click', openAuthModal);
+    if (logoutBtn)   logoutBtn.addEventListener('click', handleLogout);
+
+    if (authModal) {
+        document.getElementById('close-auth-btn').addEventListener('click', closeAuthModal);
+        authOverlay.addEventListener('click', closeAuthModal);
+        document.getElementById('tab-login').addEventListener('click', () => switchAuthTab('login'));
+        document.getElementById('tab-register').addEventListener('click', () => switchAuthTab('register'));
+        loginForm.addEventListener('submit', handleLogin);
+        registerForm.addEventListener('submit', handleRegister);
+    }
+
+    // Close sidebar or auth modal on Escape key
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && sidebar.classList.contains('open')) {
-            closeSidebar();
+        if (e.key === 'Escape') {
+            if (sidebar.classList.contains('open')) closeSidebar();
+            if (authModal && !authModal.getAttribute('aria-hidden')?.includes('true')) closeAuthModal();
         }
     });
 
@@ -537,4 +569,120 @@ function apiFetch(endpoint, method = 'GET', body = null) {
     };
     if (body) opts.body = JSON.stringify(body);
     return fetch(`${API_BASE}/${endpoint}`, opts);
+}
+
+// ── Auth Modal ────────────────────────────────────────────────────────────────
+function openAuthModal() {
+    if (!authModal) return;
+    authModal.setAttribute('aria-hidden', 'false');
+    authOverlay.style.display = 'block';
+    requestAnimationFrame(() => {
+        authOverlay.classList.add('visible');
+        authModal.classList.add('open');
+    });
+    // Focus first input
+    const firstInput = loginForm.querySelector('input');
+    if (firstInput) setTimeout(() => firstInput.focus(), 100);
+}
+
+function closeAuthModal() {
+    if (!authModal) return;
+    authModal.classList.remove('open');
+    authOverlay.classList.remove('visible');
+    setTimeout(() => {
+        authOverlay.style.display = 'none';
+        authModal.setAttribute('aria-hidden', 'true');
+    }, 250);
+    // Clear errors
+    if (loginError)    loginError.textContent = '';
+    if (registerError) registerError.textContent = '';
+}
+
+function switchAuthTab(tab) {
+    const tabLogin    = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+
+    if (tab === 'login') {
+        tabLogin.classList.add('active');
+        tabRegister.classList.remove('active');
+        loginForm.style.display    = '';
+        registerForm.style.display = 'none';
+    } else {
+        tabRegister.classList.add('active');
+        tabLogin.classList.remove('active');
+        registerForm.style.display = '';
+        loginForm.style.display    = 'none';
+    }
+    // Clear errors on tab switch
+    if (loginError)    loginError.textContent = '';
+    if (registerError) registerError.textContent = '';
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+    loginError.textContent = '';
+
+    const login    = document.getElementById('login-input').value.trim();
+    const password = document.getElementById('login-password').value;
+
+    if (!login || !password) {
+        loginError.textContent = 'Please fill in all fields.';
+        return;
+    }
+
+    try {
+        const res  = await apiFetch('login.php', 'POST', { login, password });
+        const data = await res.json();
+
+        if (!data.success) {
+            loginError.textContent = data.error || 'Login failed.';
+            return;
+        }
+
+        showToast('Welcome back, ' + data.user.username + '!');
+        // Reload to reflect logged-in state in header
+        setTimeout(() => location.reload(), AUTH_RELOAD_DELAY);
+    } catch (err) {
+        loginError.textContent = 'Network error. Please try again.';
+    }
+}
+
+async function handleRegister(e) {
+    e.preventDefault();
+    registerError.textContent = '';
+
+    const username = document.getElementById('reg-username').value.trim();
+    const email    = document.getElementById('reg-email').value.trim();
+    const password = document.getElementById('reg-password').value;
+
+    if (!username || !email || !password) {
+        registerError.textContent = 'Please fill in all fields.';
+        return;
+    }
+
+    try {
+        const res  = await apiFetch('register.php', 'POST', { username, email, password });
+        const data = await res.json();
+
+        if (!data.success) {
+            registerError.textContent = data.error || 'Registration failed.';
+            return;
+        }
+
+        showToast('Account created! Welcome, ' + data.user.username + '!');
+        // Reload to reflect logged-in state in header
+        setTimeout(() => location.reload(), AUTH_RELOAD_DELAY);
+    } catch (err) {
+        registerError.textContent = 'Network error. Please try again.';
+    }
+}
+
+async function handleLogout() {
+    try {
+        await apiFetch('logout.php', 'POST');
+        showToast('Logged out.');
+        setTimeout(() => location.reload(), AUTH_RELOAD_DELAY);
+    } catch {
+        location.reload();
+    }
 }
