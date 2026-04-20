@@ -63,18 +63,15 @@ if ($listHash !== '') {
     </a>
 
     <div class="header-actions">
-<?php if ($currentUser): ?>
-        <span id="user-greeting" class="user-greeting">👤 <?= htmlspecialchars($currentUser['username']) ?></span>
         <button id="open-sidebar-btn" class="btn btn-outline btn-sm" aria-label="Recent lists">
             ☰ My Lists
         </button>
+<?php if ($currentUser): ?>
+        <span id="user-greeting" class="user-greeting">👤 <?= htmlspecialchars($currentUser['username']) ?></span>
         <button id="logout-btn" class="btn btn-outline btn-sm" aria-label="Log out">
             Log out
         </button>
 <?php else: ?>
-        <button id="open-sidebar-btn" class="btn btn-outline btn-sm" aria-label="Recent lists">
-            ☰ My Lists
-        </button>
         <button id="open-auth-btn" class="btn btn-outline btn-sm" aria-label="Sign in or register">
             Sign in
         </button>

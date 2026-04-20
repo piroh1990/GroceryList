@@ -18,6 +18,9 @@
 // Change this value to adjust how often the client checks for updates.
 const POLLING_INTERVAL_MS = 10000;
 
+// Delay (ms) before reloading the page after auth actions (login/register/logout).
+const AUTH_RELOAD_DELAY = 600;
+
 // ── Derived API base URL ──────────────────────────────────────────────────────
 // Works whether the page is served from the web root or a subdirectory.
 const API_BASE = (() => {
@@ -638,7 +641,7 @@ async function handleLogin(e) {
 
         showToast('Welcome back, ' + data.user.username + '!');
         // Reload to reflect logged-in state in header
-        setTimeout(() => location.reload(), 600);
+        setTimeout(() => location.reload(), AUTH_RELOAD_DELAY);
     } catch (err) {
         loginError.textContent = 'Network error. Please try again.';
     }
@@ -668,7 +671,7 @@ async function handleRegister(e) {
 
         showToast('Account created! Welcome, ' + data.user.username + '!');
         // Reload to reflect logged-in state in header
-        setTimeout(() => location.reload(), 600);
+        setTimeout(() => location.reload(), AUTH_RELOAD_DELAY);
     } catch (err) {
         registerError.textContent = 'Network error. Please try again.';
     }
@@ -678,7 +681,7 @@ async function handleLogout() {
     try {
         await apiFetch('logout.php', 'POST');
         showToast('Logged out.');
-        setTimeout(() => location.reload(), 600);
+        setTimeout(() => location.reload(), AUTH_RELOAD_DELAY);
     } catch {
         location.reload();
     }
